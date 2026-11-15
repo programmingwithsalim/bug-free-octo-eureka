@@ -9,6 +9,15 @@ Runs entirely on this PC and pulls your closed trades straight from MetaTrader 5
 - **MT5 sync** – the *Sync MT5* button (and an automatic sync on open and every 5 min) reads closed deals from your running terminal. Re-syncing never overwrites your notes, tags or ratings.
 - **CSV import** – still available for other brokers / old history.
 
+## Trade Manager (the **Bot** tab)
+Manages trades **you** open - it **never opens a trade**. Configure it in the Bot tab:
+- **Break-even**, **trailing stop** (fixed distance or ATR), **partial take-profits** (multi-level), **auto stops** for trades that have none, and a **daily loss limit** (log only, or close everything).
+- Distances in `price`, `pips`, `points` or `R` (multiples of the trade's initial stop).
+- **Modes:** *Off* (nothing touched) → *Dry run* (every action is validated with MT5's `order_check` and logged, nothing sent) → *Live*. It starts Off; use Dry run first.
+- Safety: stops only ever tighten, a partial can never close the whole position, every order is tied to an existing position, broker minimum stop distance is respected, failed orders back off for 30 s, and by default only manual trades (magic 0) are touched.
+- Start/stop the background service from the tab. It keeps running if the web page is closed; stop it there (or end `trade_manager.py`) when you're done. MT5 must stay open and logged in.
+- Files in `data/`: `bot-config.json`, `bot-status.json`, `bot-log.jsonl`, `bot-state.json`.
+
 ## How it works
 - Your journal is stored in `data/journal.json` on this PC (git-ignored). Browser localStorage is only a fallback/mirror; an existing browser journal is migrated to the file on first run.
 - `mt5-bridge/mt5_export.py` uses the official `MetaTrader5` Python package to attach to the **already logged-in** terminal. **No password or API key is ever read or stored.**
