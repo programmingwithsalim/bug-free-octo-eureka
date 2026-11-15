@@ -19,13 +19,14 @@ function load(): Persisted {
 export interface SyncResult { ok: boolean; message: string }
 
 /**
- * The journal lives in data/journal.json on this PC (via /api/journal). localStorage is kept as a
- * mirror/fallback, and any journal found there is migrated to the file on first run.
+ * The journal lives on this PC (via /api/journal): Postgres when DATABASE_URL is set, else data/journal.json.
+ * localStorage is only a mirror; a journal found there is adopted on first run when nothing is stored yet.
  */
 export function useJournal() {
   const [state, setState] = useState<Persisted>({ trades: [], account: DEFAULT_ACCOUNT });
   const [ready, setReady] = useState(false);
   const [fileOk, setFileOk] = useState(true);
+  const [storage, setStorage] = useState<"postgres" | "file">("file");
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
@@ -33,8 +34,11 @@ export function useJournal() {
       const local = load();
       try {
         const r = await fetch("/api/journal");
-        const { journal } = await r.json();
-        // server file wins; if there is none yet, adopt whatever this browser had
+        // A failed read must NEVER fall through to saving: an empty local copy would overwrite the stored journal.
+        if (!r.ok) throw new Error("journal storage unavailable");
+        const { journal, storage: kind } = await r.json();
+        setStorage(kind ?? "file");
+        // stored journal wins; if there is none yet, adopt whatever this browser had
         setState(journal ? { trades: journal.trades, account: { ...DEFAULT_ACCOUNT, ...journal.account } } : local);
       } catch {
         setFileOk(false);
@@ -73,7 +77,7 @@ export function useJournal() {
   const setTrades = useCallback((fn: (t: Trade[]) => Trade[]) => setState((s) => ({ ...s, trades: fn(s.trades) })), []);
   const setAccount = useCallback((a: AccountSettings) => setState((s) => ({ ...s, account: a })), []);
   const replaceAll = useCallback((p: Persisted) => setState({ trades: p.trades ?? [], account: { ...DEFAULT_ACCOUNT, ...p.account } }), []);
-  return { ...state, ready, fileOk, syncing, syncMt5, setTrades, setAccount, replaceAll };
+  return { ...state, ready, fileOk, storage, syncing, syncMt5, setTrades, setAccount, replaceAll };
 }
 
 export function download(name: string, text: string, type = "application/json") {

@@ -7,14 +7,15 @@ import { monthGrid, summarize } from "@/lib/calendar";
 import { dayKey } from "@/lib/analytics";
 import { dt, money, pct } from "@/lib/format";
 import Empty from "./Empty";
-import TradeEditor from "./TradeEditor";
+import TradeDetail from "./TradeDetail";
+import type { AnalysisApi } from "@/lib/useAnalysis";
 
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /** Compact money for small cells, e.g. 1.2k. */
 const short = (n: number) => (Math.abs(n) >= 10000 ? `${(n / 1000).toFixed(0)}k` : Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(Math.abs(n) < 100 ? 2 : 0));
 
-export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) => void }) {
+export default function CalendarView({ j, an, go }: { j: JournalApi; an: AnalysisApi; go: (t: Tab) => void }) {
   const latest = useMemo(() => {
     const last = j.trades.reduce((m, t) => Math.max(m, +new Date(t.closeTime)), 0);
     return last ? new Date(last) : new Date();
@@ -95,7 +96,7 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
         </div>
       </div>
       {editing && (
-        <TradeEditor trade={editing} currency={cur} onClose={() => setEditing(null)}
+        <TradeDetail trade={editing} currency={cur} an={an} onClose={() => setEditing(null)}
           onSave={(t) => { j.setTrades((ts) => ts.map((x) => (x.id === t.id ? t : x))); setEditing(null); }}
           onDelete={(id) => { j.setTrades((ts) => ts.filter((x) => x.id !== id)); setEditing(null); }} />
       )}

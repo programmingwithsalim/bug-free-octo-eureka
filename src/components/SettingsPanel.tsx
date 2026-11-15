@@ -31,7 +31,12 @@ export default function SettingsPanel({ j }: { j: JournalApi }) {
       </div>
       <div className="card">
         <h3>Your data ({j.trades.length} trades)</h3>
-        <p className="muted">Stored in <code>data/journal.json</code> on this PC. Download a backup now and then.</p>
+        <p className="muted">
+          {j.storage === "postgres"
+            ? <>Stored in your local <b>Postgres</b> database (<code>trade_journal</code>): trades, account, cached candles and trade analyses.</>
+            : <>Stored in <code>data/journal.json</code> on this PC. To use Postgres instead, run <code>npm run db:setup -- --password &lt;your password&gt;</code> and restart.</>}
+          {" "}Download a backup now and then.
+        </p>
         <div className="bar">
           <button className="btn" onClick={() => download(`trade-journal-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ trades: j.trades, account: j.account }, null, 2))}>Download backup (JSON)</button>
           <button className="btn ghost" onClick={() => download("trades.csv", tradesToCsv(j.trades), "text/csv")}>Export CSV</button>

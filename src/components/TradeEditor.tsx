@@ -7,8 +7,9 @@ import TradeChart from "./TradeChart";
 
 const num = (s: string) => (s.trim() === "" || isNaN(+s) ? undefined : +s);
 
-export default function TradeEditor({ trade, currency = "USD", onSave, onDelete, onClose }: {
-  trade: Trade | null; currency?: string; onSave: (t: Trade) => void; onDelete: (id: string) => void; onClose: () => void;
+export default function TradeEditor({ trade, currency = "USD", panel = false, onSave, onDelete, onClose }: {
+  trade: Trade | null; currency?: string; /** render just the form (inside TradeDetail) */ panel?: boolean;
+  onSave: (t: Trade) => void; onDelete: (id: string) => void; onClose: () => void;
 }) {
   const now = new Date().toISOString();
   const [f, setF] = useState({
@@ -46,11 +47,10 @@ export default function TradeEditor({ trade, currency = "USD", onSave, onDelete,
     <div><label>{label}</label><input type={type} value={f[k] as any} onChange={(e) => set(k, e.target.value)} {...rest} /></div>
   );
 
-  return (
-    <div className="modal" onClick={onClose}>
-      <div className="card" onClick={(e) => e.stopPropagation()}>
-        <h3>{trade ? "Edit trade" : "New trade"}</h3>
-        {trade && trade.entry > 0 && <TradeChart trade={trade} currency={currency} />}
+  const inner = (
+      <>
+        {!panel && <h3>{trade ? "Edit trade" : "New trade"}</h3>}
+        {!panel && trade && trade.entry > 0 && <TradeChart trade={trade} currency={currency} />}
         <div className="form">
           <In k="symbol" label="Symbol" placeholder="EURUSD" />
           <div><label>Side</label><select value={f.side} onChange={(e) => set("side", e.target.value)}><option value="long">Long / Buy</option><option value="short">Short / Sell</option></select></div>
@@ -81,7 +81,11 @@ export default function TradeEditor({ trade, currency = "USD", onSave, onDelete,
           <button className="btn ghost" onClick={onClose}>Cancel</button>
           {trade && <button className="btn danger" style={{ marginLeft: "auto" }} onClick={() => confirm("Delete this trade?") && onDelete(trade.id)}>Delete</button>}
         </div>
-      </div>
+      </>
+  );
+  return panel ? <div>{inner}</div> : (
+    <div className="modal" onClick={onClose}>
+      <div className="card" onClick={(e) => e.stopPropagation()}>{inner}</div>
     </div>
   );
 }
