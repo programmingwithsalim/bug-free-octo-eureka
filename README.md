@@ -9,6 +9,9 @@ Runs entirely on this PC and pulls your closed trades straight from MetaTrader 5
 - **MT5 sync** – the *Sync MT5* button (and an automatic sync on open and every 5 min) reads closed deals from your running terminal. Re-syncing never overwrites your notes, tags or ratings.
 - **CSV import** – still available for other brokers / old history.
 
+## Trade charts
+Click any trade (Journal or Calendar) to see its candlestick chart straight from MT5 history: entry/exit markers, entry/exit/SL/TP lines, switchable timeframe (M1-H1). The window and timeframe are chosen automatically from how long the trade lasted. Candles for finished windows are cached in `data/candles/`, so charts keep working later even with MT5 closed. Needs the terminal open the first time a chart is viewed. Broker time is assumed UTC (Exness).
+
 ## Trade Manager (the **Bot** tab)
 Manages trades **you** open - it **never opens a trade**. Configure it in the Bot tab:
 - **Break-even**, **trailing stop** (fixed distance or ATR), **partial take-profits** (multi-level), **auto stops** for trades that have none, and a **daily loss limit** (log only, or close everything).

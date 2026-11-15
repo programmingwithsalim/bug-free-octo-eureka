@@ -86,6 +86,32 @@ describe("insights", () => {
 import { applyMt5Account, inferStartingBalance, mergeMt5 } from "../src/lib/mt5";
 import { monthGrid, summarize } from "../src/lib/calendar";
 import { DEFAULT_BOT_CONFIG, sanitizeBotConfig } from "../src/lib/bot";
+import { chartWindow, chooseTf, snapToCandle, validateCandleRequest } from "../src/lib/chart";
+
+describe("trade chart helpers", () => {
+  const T = (s: string) => +new Date(s);
+  it("pads by the trade length (min 1h) and picks a readable timeframe", () => {
+    const short = chartWindow(T("2026-09-14T10:00:00Z"), T("2026-09-14T10:05:00Z"));
+    expect(short.to - short.from).toBe(5 * 60 + 2 * 3600); // 5 min + 1h each side
+    expect(chooseTf(short.from, short.to)).toBe("M1"); // 125 min -> 125 one-minute bars
+    const long = chartWindow(T("2026-09-14T10:00:00Z"), T("2026-09-14T22:00:00Z"));
+    expect(chooseTf(long.from, long.to)).toBe("M15"); // 36h -> 144 M15 bars
+    expect(chooseTf(0, 400 * 86400)).toBe("H4"); // never returns undefined
+  });
+  it("snaps marker times to the candle that contains them", () => {
+    expect(snapToCandle(1789376400 + 123, "M5")).toBe(1789376400);
+    expect(snapToCandle(1789376400 + 299, "M5")).toBe(1789376400);
+    expect(snapToCandle(1789376400 + 300, "M5")).toBe(1789376700);
+  });
+  it("validates candle requests", () => {
+    expect(validateCandleRequest("XAUUSDm", "M5", 1000, 5000)).toBeNull();
+    expect(validateCandleRequest("X; rm -rf /", "M5", 1000, 5000)).toBe("bad symbol");
+    expect(validateCandleRequest("XAUUSDm", "M7", 1000, 5000)).toBe("bad timeframe");
+    expect(validateCandleRequest("XAUUSDm", "M5", 5000, 1000)).toBe("bad time window");
+    expect(validateCandleRequest("XAUUSDm", "M1", 0, 30 * 86400)).toBe("window too large");
+    expect(validateCandleRequest("XAUUSDm", "M1", 0, 13 * 86400)).toBe("too many candles; pick a larger timeframe");
+  });
+});
 
 describe("bot config", () => {
   it("defaults to OFF + dry run, and garbage falls back safely", () => {

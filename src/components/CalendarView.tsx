@@ -95,7 +95,7 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
         </div>
       </div>
       {editing && (
-        <TradeEditor trade={editing} onClose={() => setEditing(null)}
+        <TradeEditor trade={editing} currency={cur} onClose={() => setEditing(null)}
           onSave={(t) => { j.setTrades((ts) => ts.map((x) => (x.id === t.id ? t : x))); setEditing(null); }}
           onDelete={(id) => { j.setTrades((ts) => ts.filter((x) => x.id !== id)); setEditing(null); }} />
       )}
