@@ -21,6 +21,7 @@ export default function Journal({ j }: { j: JournalApi }) {
 
   return (
     <div>
+      <div className="page-head"><h2>Journal</h2></div>
       <div className="bar">
         <div><label>Search</label><input placeholder="symbol, setup, tag, note…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <div><label>Result</label>
@@ -32,7 +33,7 @@ export default function Journal({ j }: { j: JournalApi }) {
         <span className="muted">{rows.length} of {j.trades.length}</span>
       </div>
       {!rows.length ? (
-        <div className="card empty">No trades match. Add one or import a CSV.</div>
+        <div className="card empty">No trades match. Add one or press Sync MT5.</div>
       ) : (
         <div className="card scroll" style={{ padding: 0 }}>
           <table>

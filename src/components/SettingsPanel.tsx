@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { JournalApi } from "./App";
 import { download, tradesToCsv } from "@/lib/store";
+import ImportPanel from "./ImportPanel";
 
 export default function SettingsPanel({ j }: { j: JournalApi }) {
   const [a, setA] = useState(j.account);
@@ -14,6 +15,8 @@ export default function SettingsPanel({ j }: { j: JournalApi }) {
     } catch { alert("That doesn't look like a Trade Journal backup file."); }
   };
   return (
+    <div className="grid">
+    <div className="page-head"><h2>Settings</h2></div>
     <div className="grid two">
       <div className="card">
         <h3>Account details</h3>
@@ -28,14 +31,21 @@ export default function SettingsPanel({ j }: { j: JournalApi }) {
       </div>
       <div className="card">
         <h3>Your data ({j.trades.length} trades)</h3>
-        <p className="muted">Stored only in this browser. Use backups to move between devices or before clearing browser data.</p>
+        <p className="muted">Stored in <code>data/journal.json</code> on this PC. Download a backup now and then.</p>
         <div className="bar">
           <button className="btn" onClick={() => download(`trade-journal-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ trades: j.trades, account: j.account }, null, 2))}>Download backup (JSON)</button>
           <button className="btn ghost" onClick={() => download("trades.csv", tradesToCsv(j.trades), "text/csv")}>Export CSV</button>
         </div>
         <div><label>Restore from backup</label><input type="file" accept=".json" onChange={(e) => e.target.files?.[0] && restore(e.target.files[0])} /></div>
-        <p><button className="btn danger" onClick={() => confirm("Delete ALL trades from this browser? This cannot be undone.") && j.setTrades(() => [])}>Delete all trades</button></p>
+        <p><button className="btn danger" onClick={() => confirm("Delete ALL trades from the journal? The next MT5 sync will bring broker trades back, but your notes and tags will be lost.") && j.setTrades(() => [])}>Delete all trades</button></p>
       </div>
+    </div>
+    <div className="card">
+      <details className="fold">
+        <summary>Import a CSV (other brokers, old history, demo data)</summary>
+        <ImportPanel j={j} done={() => {}} />
+      </details>
+    </div>
     </div>
   );
 }

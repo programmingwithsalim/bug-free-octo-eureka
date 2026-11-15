@@ -15,6 +15,7 @@ export default function Insights({ j, go }: { j: JournalApi; go: (t: Tab) => voi
   const leak = items.filter((i) => i.cost && i.cost < 0 && i.severity !== "good").sort((a, b) => a.cost! - b.cost!).slice(0, 3);
   return (
     <div className="grid">
+      <div className="page-head"><h2>Insights</h2></div>
       {leak.length > 0 && (
         <div className="card">
           <h3>Biggest leaks (net result {money(st.netPnl, j.account.currency)})</h3>

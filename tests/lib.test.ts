@@ -84,6 +84,24 @@ describe("insights", () => {
 });
 
 import { applyMt5Account, inferStartingBalance, mergeMt5 } from "../src/lib/mt5";
+import { monthGrid, summarize } from "../src/lib/calendar";
+
+describe("calendar", () => {
+  it("lays out Mon-Sun weeks with daily P&L and week totals", () => {
+    // Nov 2026: 1st is a Sunday -> 6 leading days from October
+    const ts = [mk({ pnl: 100, closeTime: "2026-11-02T10:00:00" }), mk({ pnl: -30, closeTime: "2026-11-02T12:00:00" }), mk({ pnl: 50, closeTime: "2026-11-13T09:00:00" }), mk({ pnl: 999, closeTime: "2026-10-30T09:00:00" })];
+    const weeks = monthGrid(ts, 2026, 10);
+    expect(weeks.every((w) => w.days.length === 7)).toBe(true);
+    expect(weeks[0].days[6]).toMatchObject({ key: "2026-11-01", inMonth: true });
+    const mon = weeks[1].days[0];
+    expect(mon).toMatchObject({ key: "2026-11-02", pnl: 70, count: 2, wins: 1 });
+    expect(weeks[1].pnl).toBe(70);
+    expect(weeks[0].pnl).toBe(0); // out-of-month Oct 30 trade not counted
+    const s = summarize(weeks);
+    expect(s).toMatchObject({ pnl: 120, count: 3, tradingDays: 2, greenDays: 2 });
+    expect(s.bestDay?.key).toBe("2026-11-02");
+  });
+});
 
 describe("starting balance", () => {
   it("backs out P&L and deposits, falls back if it would go negative", () => {
