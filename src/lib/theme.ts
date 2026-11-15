@@ -5,8 +5,8 @@ export type Theme = "light" | "dark";
 
 /** Colours for recharts (SVG attributes), mirroring the CSS variables in globals.css. */
 export const CHART: Record<Theme, { grid: string; axis: string; tipBg: string; tipLine: string; green: string; red: string; blue: string; cursor: string }> = {
-  dark: { grid: "#243049", axis: "#8b97b1", tipBg: "#121826", tipLine: "#243049", green: "#2ecc8f", red: "#ff5d6c", blue: "#5b8cff", cursor: "#ffffff10" },
-  light: { grid: "#dde3ef", axis: "#5d6a85", tipBg: "#ffffff", tipLine: "#dde3ef", green: "#0f9f6a", red: "#d93a4b", blue: "#3b6df0", cursor: "#17203314" },
+  dark: { grid: "#232836", axis: "#7f8aa0", tipBg: "#1a1e28", tipLine: "#232836", green: "#34d399", red: "#fb7185", blue: "#7c85ff", cursor: "#ffffff0d" },
+  light: { grid: "#e1e4ef", axis: "#667089", tipBg: "#ffffff", tipLine: "#e1e4ef", green: "#059669", red: "#e11d48", blue: "#4f5bf5", cursor: "#12151f0d" },
 };
 
 export function useTheme() {
