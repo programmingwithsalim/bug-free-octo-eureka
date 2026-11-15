@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { JournalApi, Tab } from "./App";
 import type { Trade } from "@/lib/types";
 import { monthGrid, summarize } from "@/lib/calendar";
@@ -21,6 +22,7 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
   const [cursor, setCursor] = useState<{ y: number; m: number } | null>(null);
   const { y, m } = cursor ?? { y: latest.getFullYear(), m: latest.getMonth() };
   const [selected, setSelected] = useState<string | null>(null);
+  const [dir, setDir] = useState<"l" | "r">("r");
   const [editing, setEditing] = useState<Trade | null>(null);
 
   const weeks = useMemo(() => monthGrid(j.trades, y, m), [j.trades, y, m]);
@@ -31,7 +33,7 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
 
   if (!j.trades.length) return <Empty go={go} />;
 
-  const move = (delta: number) => { const d = new Date(y, m + delta, 1); setCursor({ y: d.getFullYear(), m: d.getMonth() }); setSelected(null); };
+  const move = (delta: number) => { const d = new Date(y, m + delta, 1); setDir(delta > 0 ? "r" : "l"); setCursor({ y: d.getFullYear(), m: d.getMonth() }); setSelected(null); };
   const dayCell = weeks.flatMap((w) => w.days).find((d) => d.key === selected);
   const title = new Date(y, m, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
 
@@ -49,20 +51,20 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
       <div className="cal-wrap">
         <div className="card">
           <div className="cal-head">
-            <button className="btn ghost" onClick={() => move(-1)} aria-label="Previous month">‹</button>
+            <button className="btn ghost" onClick={() => move(-1)} aria-label="Previous month"><ChevronLeft size={18} /></button>
             <h3>{title}</h3>
-            <button className="btn ghost" onClick={() => move(1)} aria-label="Next month">›</button>
+            <button className="btn ghost" onClick={() => move(1)} aria-label="Next month"><ChevronRight size={18} /></button>
             <button className="btn ghost" onClick={() => { setCursor(null); setSelected(null); }}>Latest</button>
           </div>
-          <div className="cal-grid">
+          <div className={`cal-grid ${dir}`} key={`${y}-${m}`}>
             {DOW.map((d) => <div key={d} className="cal-dow">{d}</div>)}
             <div className="cal-dow">Week</div>
             {weeks.map((w, wi) => (
               <Row key={wi}>
-                {w.days.map((d) => {
+                {w.days.map((d, di) => {
                   const cls = ["cal-day", !d.inMonth && "out", d.count && "has", d.count && (d.pnl >= 0 ? "win" : "loss"), d.key === selected && "sel", d.key === today && "today"].filter(Boolean).join(" ");
                   return (
-                    <button key={d.key} className={cls} style={d.count ? ({ "--i": Math.min(1, Math.abs(d.pnl) / maxAbs) * 3 + 0.4 } as React.CSSProperties) : undefined}
+                    <button key={d.key} className={cls} style={{ "--k": wi * 7 + di, ...(d.count ? { "--i": Math.min(1, Math.abs(d.pnl) / maxAbs) * 3 + 0.4 } : {}) } as React.CSSProperties}
                       onClick={() => d.count && setSelected(d.key === selected ? null : d.key)} disabled={!d.count}>
                       <span className="d">{d.day}</span>
                       {d.count > 0 && <><span className={`p ${d.pnl >= 0 ? "pos" : "neg"}`}>{d.pnl >= 0 ? "+" : "−"}{short(Math.abs(d.pnl))}</span><span className="c">{d.count} trade{d.count > 1 ? "s" : ""}</span></>}
@@ -75,14 +77,14 @@ export default function CalendarView({ j, go }: { j: JournalApi; go: (t: Tab) =>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card fade-in" key={selected ?? "none"}>
           <h3>{dayCell ? dayCell.key : "Select a day"}</h3>
           {!dayCell ? <p className="muted">Click a coloured day to see its trades. Click a trade to add notes, tags and a rating.</p> : (
             <>
               <p className={dayCell.pnl >= 0 ? "pos" : "neg"} style={{ fontSize: 22, fontWeight: 650, margin: "0 0 10px" }}>{money(dayCell.pnl, cur)}</p>
               <div className="day-list">
-                {[...dayCell.trades].sort((a, b) => +new Date(a.closeTime) - +new Date(b.closeTime)).map((t) => (
-                  <div key={t.id} className="t" onClick={() => setEditing(t)}>
+                {[...dayCell.trades].sort((a, b) => +new Date(a.closeTime) - +new Date(b.closeTime)).map((t, k) => (
+                  <div key={t.id} className="t" style={{ "--k": k } as React.CSSProperties} onClick={() => setEditing(t)}>
                     <span><b>{t.symbol}</b> <span className="muted">{t.side} · {t.size}</span><br /><span className="muted">{dt(t.closeTime)}</span></span>
                     <span className={t.pnl >= 0 ? "pos" : "neg"}>{money(t.pnl, cur)}</span>
                   </div>
