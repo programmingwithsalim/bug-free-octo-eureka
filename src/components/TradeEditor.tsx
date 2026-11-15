@@ -3,11 +3,12 @@ import { useState } from "react";
 import { EMOTIONS, MISTAKE_TAGS, type Side, type Trade } from "@/lib/types";
 import { toLocalInput } from "@/lib/format";
 import { tradeId } from "@/lib/importer";
+import TradeChart from "./TradeChart";
 
 const num = (s: string) => (s.trim() === "" || isNaN(+s) ? undefined : +s);
 
-export default function TradeEditor({ trade, onSave, onDelete, onClose }: {
-  trade: Trade | null; onSave: (t: Trade) => void; onDelete: (id: string) => void; onClose: () => void;
+export default function TradeEditor({ trade, currency = "USD", onSave, onDelete, onClose }: {
+  trade: Trade | null; currency?: string; onSave: (t: Trade) => void; onDelete: (id: string) => void; onClose: () => void;
 }) {
   const now = new Date().toISOString();
   const [f, setF] = useState({
@@ -49,6 +50,7 @@ export default function TradeEditor({ trade, onSave, onDelete, onClose }: {
     <div className="modal" onClick={onClose}>
       <div className="card" onClick={(e) => e.stopPropagation()}>
         <h3>{trade ? "Edit trade" : "New trade"}</h3>
+        {trade && trade.entry > 0 && <TradeChart trade={trade} currency={currency} />}
         <div className="form">
           <In k="symbol" label="Symbol" placeholder="EURUSD" />
           <div><label>Side</label><select value={f.side} onChange={(e) => set("side", e.target.value)}><option value="long">Long / Buy</option><option value="short">Short / Sell</option></select></div>

@@ -61,6 +61,7 @@ export default function Journal({ j }: { j: JournalApi }) {
       {editing && (
         <TradeEditor
           trade={editing === "new" ? null : editing}
+          currency={j.account.currency}
           onClose={() => setEditing(null)}
           onSave={(t) => { j.setTrades((ts) => (ts.some((x) => x.id === t.id) ? ts.map((x) => (x.id === t.id ? t : x)) : [...ts, t])); setEditing(null); }}
           onDelete={(id) => { j.setTrades((ts) => ts.filter((x) => x.id !== id)); setEditing(null); }}

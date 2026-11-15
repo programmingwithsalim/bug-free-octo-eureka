@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { execFile, spawn } from "child_process";
+import type { CandleRow } from "./chart";
 import { DEFAULT_BOT_CONFIG, sanitizeBotConfig, type BotConfig, type BotLogEntry, type BotStatus } from "./bot";
 import { DEFAULT_ACCOUNT, type AccountSettings, type Trade } from "./types";
 import type { Mt5Export } from "./mt5";
@@ -80,6 +81,28 @@ export async function startBot(): Promise<void> {
   // detached: the manager keeps running if the web server restarts
   spawn(process.env.PYTHON ?? "python", [script, "--data-dir", DATA_DIR], { detached: true, stdio: "ignore", windowsHide: true, cwd: path.dirname(script) }).unref();
 }
+/** Candles for a closed window never change, so they are cached on disk (works later even with MT5 closed). */
+export async function getCandles(symbol: string, tf: string, from: number, to: number): Promise<CandleRow[]> {
+  const cacheDir = path.join(DATA_DIR, "candles");
+  const cache = path.join(cacheDir, `${symbol.replace(/[^A-Za-z0-9._-]/g, "_")}_${tf}_${from}_${to}.json`);
+  try { return JSON.parse(await fs.readFile(cache, "utf8")); } catch {}
+  const script = path.join(process.cwd(), "mt5-bridge", "mt5_candles.py");
+  const python = process.env.PYTHON ?? "python";
+  const out: any = await new Promise((resolve, reject) => {
+    execFile(python, [script, "--symbol", symbol, "--from", String(from), "--to", String(to), "--tf", tf], { timeout: 60_000, maxBuffer: 16 * 1024 * 1024 }, (err, stdout) => {
+      let o: any;
+      try { o = JSON.parse(stdout); } catch {}
+      if (o?.ok) return resolve(o);
+      reject(new Error(o?.error ?? (err ? `Could not run Python (${err.message}). Is "${python}" on your PATH?` : "Empty response from MT5 script")));
+    });
+  });
+  if (to < Date.now() / 1000 - 120) { // only cache once the window is fully in the past
+    await fs.mkdir(cacheDir, { recursive: true });
+    await fs.writeFile(cache, JSON.stringify(out.candles));
+  }
+  return out.candles;
+}
+
 export async function stopBot(): Promise<void> {
   const { running, status } = await readBotStatus();
   if (running && status && Number.isInteger(status.pid) && status.pid > 0) {
