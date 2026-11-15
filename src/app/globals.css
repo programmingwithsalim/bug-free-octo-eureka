@@ -152,6 +152,33 @@ details.fold[open] > summary { margin-bottom: 12px; }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: var(--panel); box-shadow: 0 8px 30px #0004; font-weight: 500; animation: toast-in .4s var(--ease) both; max-width: min(420px, calc(100vw - 32px)); }
 .toast.ok .ico { background: var(--green-bg); color: var(--green); } .toast.bad .ico { background: var(--red-bg); color: var(--red); }
 
+/* ---- trade manager ---- */
+.switch { flex: none; width: 42px; height: 24px; border-radius: 999px; border: 0; background: var(--panel2); position: relative; cursor: pointer; transition: background-color .25s var(--ease); }
+.switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .3s var(--ease), background-color .25s; }
+.switch.on { background: var(--accent); }
+.switch.on span { transform: translateX(18px); background: #fff; }
+.rule { transition: opacity var(--med) var(--ease), transform var(--fast) var(--ease); }
+.rule-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.rule-head b { font-size: 15px; }
+.rule-body { margin-top: 14px; display: grid; gap: 12px; transition: opacity var(--med) var(--ease); }
+.rule.off .rule-body { opacity: .45; }
+.rule.off .rule-body:focus-within, .rule.off:hover .rule-body { opacity: 1; }
+.dist { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(90px, 1.3fr); gap: 6px; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.level { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.mode-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.mode-row .seg { min-width: 280px; }
+.mode-desc { display: flex; gap: 12px; align-items: flex-start; flex: 1; min-width: 260px; color: var(--muted); }
+.mode-desc svg { flex: none; color: var(--accent); margin-top: 2px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--panel2); font-size: 13px; font-weight: 500; color: var(--muted); }
+.pill.ok { background: var(--green-bg); color: var(--green); } .pill.warn { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+.save-bar { position: sticky; bottom: 14px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--panel); box-shadow: 0 8px 30px #0003; z-index: 2; }
+.log { display: grid; gap: 2px; max-height: 420px; overflow: auto; }
+.rule .form { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.log-row { display: grid; grid-template-columns: 88px 40px 1fr; gap: 10px; align-items: baseline; padding: 7px 4px; border-bottom: 1px solid var(--line); font-size: 13px; animation: fade .3s ease both; }
+.log-row.bad { color: var(--red); }
+.log-row:last-child { border-bottom: 0; }
+
 /* ---- calendar ---- */
 .cal-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
 .cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }

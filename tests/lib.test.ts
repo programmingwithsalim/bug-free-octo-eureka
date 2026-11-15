@@ -85,6 +85,36 @@ describe("insights", () => {
 
 import { applyMt5Account, inferStartingBalance, mergeMt5 } from "../src/lib/mt5";
 import { monthGrid, summarize } from "../src/lib/calendar";
+import { DEFAULT_BOT_CONFIG, sanitizeBotConfig } from "../src/lib/bot";
+
+describe("bot config", () => {
+  it("defaults to OFF + dry run, and garbage falls back safely", () => {
+    expect(DEFAULT_BOT_CONFIG).toMatchObject({ enabled: false, dryRun: true });
+    expect(sanitizeBotConfig(null)).toEqual(DEFAULT_BOT_CONFIG);
+    expect(sanitizeBotConfig("x")).toEqual(DEFAULT_BOT_CONFIG);
+    const c = sanitizeBotConfig({ enabled: "yes", dryRun: 0, trailing: { enabled: true, mode: "wild", start: { value: "abc", unit: "lightyears" } } });
+    expect(c.enabled).toBe(false);
+    expect(c.dryRun).toBe(true); // a non-boolean never turns dry run off
+    expect(c.trailing).toMatchObject({ enabled: true, mode: "fixed", start: { value: 1, unit: "r" } });
+  });
+  it("coerces numbers, clamps ranges, and never allows a 100% partial", () => {
+    const c = sanitizeBotConfig({
+      pollSeconds: 0, dailyLoss: { enabled: true, limit: "25.5", action: "nuke" },
+      partials: { enabled: true, levels: [{ at: { value: "2", unit: "pips" }, closePct: 100 }, { at: { value: -5, unit: "price" }, closePct: 0 }] },
+      scope: { symbols: [" xauusdm ", "", 5] },
+    });
+    expect(c.pollSeconds).toBe(0.5);
+    expect(c.dailyLoss).toEqual({ enabled: true, limit: 25.5, action: "alert" });
+    expect(c.partials.levels.map((l) => l.closePct)).toEqual([99, 1]);
+    expect(c.partials.levels[0].at).toEqual({ value: 2, unit: "pips" });
+    expect(c.partials.levels[1].at.value).toBe(0); // negatives clamp to 0
+    expect(c.scope.symbols).toEqual(["xauusdm"]);
+  });
+  it("round-trips a valid config unchanged", () => {
+    const c = sanitizeBotConfig({ ...DEFAULT_BOT_CONFIG, enabled: true, dryRun: false, breakEven: { ...DEFAULT_BOT_CONFIG.breakEven, enabled: true } });
+    expect(sanitizeBotConfig(JSON.parse(JSON.stringify(c)))).toEqual(c);
+  });
+});
 
 describe("calendar", () => {
   it("lays out Mon-Sun weeks with daily P&L and week totals", () => {

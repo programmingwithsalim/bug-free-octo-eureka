@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1",
     "test": "vitest run",
-    "test:py": "python -c \"import sys;sys.path.insert(0,'mt5-bridge');import test_mt5_export as t;[getattr(t,n)() for n in dir(t) if n.startswith('test_')]\""
+    "test:py": "python mt5-bridge/run_tests.py"
   },
   "dependencies": {
     "lucide-react": "^1.73.0",

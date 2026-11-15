@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Check, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
+import { Bot, CalendarDays, Check, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
 import { useJournal } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import Dashboard from "./Dashboard";
@@ -8,6 +8,7 @@ import CalendarView from "./CalendarView";
 import Journal from "./Journal";
 import Insights from "./Insights";
 import SettingsPanel from "./SettingsPanel";
+import BotPanel from "./BotPanel";
 import Seg from "./Seg";
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { id: "Calendar", icon: CalendarDays },
   { id: "Journal", icon: NotebookPen },
   { id: "Insights", icon: Sparkles },
+  { id: "Bot", icon: Bot },
   { id: "Settings", icon: Settings },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
@@ -91,6 +93,7 @@ export default function App() {
           {tab === "Calendar" && <CalendarView j={j} go={setTab} />}
           {tab === "Journal" && <Journal j={j} />}
           {tab === "Insights" && <Insights j={j} go={setTab} />}
+          {tab === "Bot" && <BotPanel j={j} />}
           {tab === "Settings" && <SettingsPanel j={j} />}
         </div>
       </main>
