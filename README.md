@@ -9,6 +9,16 @@ Runs entirely on this PC and pulls your closed trades straight from MetaTrader 5
 - **MT5 sync** – the *Sync MT5* button (and an automatic sync on open and every 5 min) reads closed deals from your running terminal. Re-syncing never overwrites your notes, tags or ratings.
 - **CSV import** – still available for other brokers / old history.
 
+## Storage (Postgres)
+Run once: `npm run db:setup -- --password <your postgres password>` (creates the `trade_journal` database and tables, writes the connection string to the git-ignored `.env.local`), then restart `npm run dev`. The first start imports an existing `data/journal.json` (left in place as a backup). Without `.env.local` the app keeps using `data/*.json`.
+Stored in Postgres: trades + journal notes, account, cached MT5 candles, and per-trade analyses. The Bot's files (`bot-*.json`) stay in `data/`. The password is never committed.
+
+## Hindsight: "how could this trade have been taken?"
+Click a trade (Journal/Calendar) for a slide-over with the chart (best/worst point markers), measured stats (worst/best point, % of the move captured, what happened after exit) and:
+- **Your record on trades like this**: entries are grouped by what was knowable at entry (momentum into the entry, position in the last hour's range, trend alignment) and compared with *your own* results, with an evidence label (strong/moderate/weak/too few). Advice is derived from your data, not generic rules.
+- **Management what-ifs**: stop + 2R target, break-even, ATR trail, partial exit replayed on the real candles, always shown next to their effect across all your trades.
+The **Insights** page shows the same edge profile for all trades. Analyses run automatically (MT5 must be open the first time) and are stored.
+
 ## Trade charts
 Click any trade (Journal or Calendar) to see its candlestick chart straight from MT5 history: entry/exit markers, entry/exit/SL/TP lines, switchable timeframe (M1-H1). The window and timeframe are chosen automatically from how long the trade lasted. Candles for finished windows are cached in `data/candles/`, so charts keep working later even with MT5 closed. Needs the terminal open the first time a chart is viewed. Broker time is assumed UTC (Exness).
 

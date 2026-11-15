@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bot, CalendarDays, Check, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
 import { useJournal } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
+import { useAnalysis } from "@/lib/useAnalysis";
 import Dashboard from "./Dashboard";
 import CalendarView from "./CalendarView";
 import Journal from "./Journal";
@@ -25,6 +26,7 @@ interface Toast { id: number; ok: boolean; message: string }
 
 export default function App() {
   const j = useJournal();
+  const an = useAnalysis(j.trades, j.ready && j.fileOk);
   const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<Tab>("Dashboard");
   const [toast, setToast] = useState<Toast | null>(null);
@@ -87,12 +89,12 @@ export default function App() {
         </div>
       </aside>
       <main className="main">
-        {!j.fileOk && <div className="note neg" style={{ marginBottom: 14 }}>Can't reach the local journal file. Run the app with <code>npm run dev</code> on this PC; changes are only saved in this browser until then.</div>}
+        {!j.fileOk && <div className="note neg" style={{ marginBottom: 14 }}>Can't reach the journal storage (check that <code>npm run dev</code> is running and Postgres is up). Nothing will be written to the database until this is fixed; changes are only kept in this browser.</div>}
         <div className="page" key={tab}>
           {tab === "Dashboard" && <Dashboard j={j} go={setTab} theme={theme} />}
-          {tab === "Calendar" && <CalendarView j={j} go={setTab} />}
-          {tab === "Journal" && <Journal j={j} />}
-          {tab === "Insights" && <Insights j={j} go={setTab} />}
+          {tab === "Calendar" && <CalendarView j={j} an={an} go={setTab} />}
+          {tab === "Journal" && <Journal j={j} an={an} />}
+          {tab === "Insights" && <Insights j={j} an={an} go={setTab} theme={theme} />}
           {tab === "Bot" && <BotPanel j={j} />}
           {tab === "Settings" && <SettingsPanel j={j} />}
         </div>

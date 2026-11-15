@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CandlestickSeries, ColorType, CrosshairMode, LineStyle, createChart, createSeriesMarkers, type SeriesMarker, type UTCTimestamp } from "lightweight-charts";
 import { LineChart } from "lucide-react";
 import type { Trade } from "@/lib/types";
+import type { Analysis } from "@/lib/analysis";
 import { TFS, chartWindow, chooseTf, localOffsetSec, snapToCandle, type CandleRow, type TF } from "@/lib/chart";
 import { money } from "@/lib/format";
 import Seg from "./Seg";
@@ -13,7 +14,7 @@ const palette = () => ({
 });
 
 /** Candlestick chart of one trade from MT5 history: entry/exit markers, entry/exit/SL/TP lines. */
-export default function TradeChart({ trade, currency }: { trade: Trade; currency: string }) {
+export default function TradeChart({ trade, currency, analysis, showPlan = false }: { trade: Trade; currency: string; analysis?: Analysis | null; showPlan?: boolean }) {
   const open = +new Date(trade.openTime), close = +new Date(trade.closeTime);
   const win = useMemo(() => chartWindow(open, close), [open, close]);
   const [tf, setTf] = useState<TF>(() => chooseTf(win.from, win.to));
@@ -55,6 +56,11 @@ export default function TradeChart({ trade, currency }: { trade: Trade; currency
       { time: at(open), position: long ? "belowBar" : "aboveBar", shape: long ? "arrowUp" : "arrowDown", color: p.accent, text: `${long ? "Buy" : "Sell"} ${trade.size}` },
       { time: at(close), position: long ? "aboveBar" : "belowBar", shape: long ? "arrowDown" : "arrowUp", color: win_ ? p.up : p.down, text: `Exit ${money(trade.pnl, currency)}` },
     ];
+    if (analysis?.ok) { // measured extremes while the trade was open
+      const { mfePoint, maePoint } = analysis;
+      if (mfePoint && analysis.mfe > 0) markers.push({ time: at(mfePoint.time * 1000), position: long ? "aboveBar" : "belowBar", shape: "circle", color: p.up, text: "Best point" });
+      if (maePoint && analysis.mae > 0) markers.push({ time: at(maePoint.time * 1000), position: long ? "belowBar" : "aboveBar", shape: "circle", color: p.down, text: "Worst point" });
+    }
     createSeriesMarkers(series, markers.sort((a, b) => (a.time as number) - (b.time as number)));
 
     const line = (price: number | undefined, color: string, title: string, style = LineStyle.Dashed) =>
@@ -63,6 +69,10 @@ export default function TradeChart({ trade, currency }: { trade: Trade; currency
     line(trade.exit, win_ ? p.up : p.down, "Exit", LineStyle.Dotted);
     line(trade.stopLoss, p.down, "SL");
     line(trade.takeProfit, p.up, "TP");
+    if (showPlan && analysis?.suggestion) { // ATR-based reference plan (what a 1-3 ATR stop and 2R target would have looked like)
+      line(analysis.suggestion.stop, p.accent, "Plan SL", LineStyle.SparseDotted);
+      line(analysis.suggestion.target, p.accent, "Plan TP 2R", LineStyle.SparseDotted);
+    }
     chart.timeScale().fitContent();
 
     // follow light/dark switches
@@ -73,7 +83,7 @@ export default function TradeChart({ trade, currency }: { trade: Trade; currency
     });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => { mo.disconnect(); chart.remove(); };
-  }, [candles, trade, tf, open, close, currency]);
+  }, [candles, trade, tf, open, close, currency, analysis, showPlan]);
 
   return (
     <div className="trade-chart">

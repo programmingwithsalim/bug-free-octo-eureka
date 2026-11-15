@@ -24,7 +24,33 @@ def _fail(msg):
     sys.exit(1)
 
 
+def fetch(mt5, symbol, t0, t1, tf_name):
+    """Candles for one window as rows, or None when MT5 has nothing."""
+    mt5.symbol_select(symbol, True)  # make sure the symbol is in Market Watch so history can load
+    rates = mt5.copy_rates_range(symbol, getattr(mt5, "TIMEFRAME_" + tf_name), datetime.fromtimestamp(t0, tz=timezone.utc), datetime.fromtimestamp(t1, tz=timezone.utc))
+    return rates_to_rows(rates) if rates is not None and len(rates) else None
+
+
+def batch_main():
+    """--batch: read [{"symbol":..,"from":..,"to":..}, ...] from stdin, answer {"ok":true,"results":[rows|null, ...]} (M1)."""
+    try:
+        windows = json.load(sys.stdin)
+        import MetaTrader5 as mt5
+    except ImportError:
+        _fail("Python package 'MetaTrader5' is missing. Run: pip install MetaTrader5")
+    except ValueError:
+        _fail("Bad batch input")
+    if not mt5.initialize():
+        _fail(f"Could not connect to MT5 ({mt5.last_error()}). Open the MetaTrader 5 terminal and log in.")
+    try:
+        print(json.dumps({"ok": True, "results": [fetch(mt5, w["symbol"], int(w["from"]), int(w["to"]), "M1") for w in windows]}))
+    finally:
+        mt5.shutdown()
+
+
 def main():
+    if "--batch" in sys.argv:
+        return batch_main()
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbol", required=True)
     ap.add_argument("--from", dest="t0", type=int, required=True)
