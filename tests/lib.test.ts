@@ -82,3 +82,32 @@ describe("insights", () => {
     expect(generateInsights(ts).map((i) => i.id)).toContain("hold-losers");
   });
 });
+
+import { applyMt5Account, inferStartingBalance, mergeMt5 } from "../src/lib/mt5";
+
+describe("starting balance", () => {
+  it("backs out P&L and deposits, falls back if it would go negative", () => {
+    expect(inferStartingBalance(1000, [{ pnl: 300 }, { pnl: -100 }], 500)).toBe(300);
+    expect(inferStartingBalance(71.32, [{ pnl: 811 }], 0)).toBe(71.32);
+    // whole account history in window: balance - pnl - deposits = 0 -> first deposit
+    expect(inferStartingBalance(71.32, [{ pnl: 811.25 }], -739.93, 300)).toBe(300);
+  });
+});
+
+describe("mt5 merge", () => {
+  const inc = (o: any = {}) => ({ id: "mt5-1", symbol: "XAUUSDm", side: "long" as const, openTime: "2024-01-02T10:00:00Z", closeTime: "2024-01-02T11:00:00Z", entry: 2000, exit: 2010, size: 0.1, pnl: 99, fees: 1, stopLoss: null, takeProfit: null, tags: [], ...o });
+  it("adds new trades and keeps journal fields on re-sync", () => {
+    const first = mergeMt5([], [inc()]);
+    expect(first).toMatchObject({ added: 1, updated: 0 });
+    const journaled = { ...first.trades[0], notes: "A+ setup", tags: ["Good execution"], rating: 5 };
+    const again = mergeMt5([journaled], [inc({ pnl: 95, stopLoss: 1990 })]);
+    expect(again).toMatchObject({ added: 0, updated: 1 });
+    expect(again.trades[0]).toMatchObject({ pnl: 95, stopLoss: 1990, notes: "A+ setup", rating: 5, tags: ["Good execution"] });
+    expect(mergeMt5(again.trades, [inc({ pnl: 95, stopLoss: 1990 })]).updated).toBe(0);
+  });
+  it("fills broker/currency but keeps a custom account name", () => {
+    const m = { login: 123, server: "Exness-MT5Real", company: "Exness Technologies Ltd", currency: "USD", balance: 1, leverage: 500 };
+    expect(applyMt5Account({ name: "Main account", broker: "", currency: "EUR", startingBalance: 1 }, m).name).toBe("Exness Technologies Ltd #123");
+    expect(applyMt5Account({ name: "Scalp", broker: "", currency: "EUR", startingBalance: 1 }, m)).toMatchObject({ name: "Scalp", currency: "USD" });
+  });
+});
