@@ -233,7 +233,7 @@ export async function storedTelegramToken(): Promise<string> {
 export async function readSignalStatus(): Promise<{ running: boolean; status: SignalStatus | null }> {
   try {
     const s: SignalStatus = JSON.parse(await fs.readFile(botFile("signal-status.json"), "utf8"));
-    return { running: Date.now() - s.ts * 1000 < HEARTBEAT_MS * 2, status: s };
+    return { running: Date.now() - s.ts * 1000 < 30_000, status: s };   // service heartbeats every ~2s; 30s tolerates a slow scan
   } catch { return { running: false, status: null }; }
 }
 /** Folds data/signals.jsonl (alerts + their forward-test outcomes + info alerts) into feeds, newest first. */
