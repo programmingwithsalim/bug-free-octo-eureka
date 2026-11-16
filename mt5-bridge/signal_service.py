@@ -38,7 +38,7 @@ DEFAULT_CFG = {
     "quiet": {"enabled": False, "start": 22, "end": 6},     # UTC hours: no alerts in this window
 }
 FRESH_SEC = 20 * 60                 # a bar older than this is never alerted (startup / PC woke from sleep)
-STALE_AFTER = 6.0
+STALE_AFTER = 30.0                  # heartbeat is refreshed every ~2s; a scan itself can take several seconds
 
 
 def merge(base, over):
@@ -105,6 +105,7 @@ class Service:
         self.cfg, self._cfg_m = merge(DEFAULT_CFG, {}), -1.0
         self._ctx_key, self.s, self.ctx = None, None, None
         self.error, self.news_info = None, {"ok": False, "events": [], "note": "not loaded"}
+        self.last_status = None
 
     # ---- plumbing ------------------------------------------------------------------------------
     def config(self):
@@ -301,18 +302,31 @@ class Service:
         masked = json.loads(json.dumps(cfg))
         tg = masked["channels"]["telegram"]
         tg["token"] = "set" if tg.get("token") else ""
-        _write_json(self.p("signal-status.json"), {
+        self.last_status = {
             "pid": os.getpid(), "ts": now, "connected": self.error is None, "error": self.error, "enabled": cfg["enabled"], "symbol": cfg["symbol"],
             "bar_time": self.s.t[-1] if self.s else None, "snapshot": snap,
             "news": {"ok": self.news_info.get("ok"), "note": self.news_info.get("note"), "upcoming": NEWS.upcoming(self.news_info.get("events", []), now, hours=48)},
             "today": self.state["day_counts"].get(datetime.fromtimestamp(now, timezone.utc).strftime("%Y-%m-%d"), 0),
             "forward": self.state["forward"], "open": len(self.state["open"]), "config": masked,
-        })
+        }
+        _write_json(self.p("signal-status.json"), self.last_status)
+
+    def heartbeat(self):
+        """Refresh only the timestamp (cheap, every ~2s) so the page never mistakes a busy/sleeping service for a stopped one."""
+        if self.last_status is not None:
+            self.last_status["ts"] = self.now()
+            _write_json(self.p("signal-status.json"), self.last_status)
 
 
 def merge_state(st):
     base = {"last_bar": None, "seen": [], "sent": [], "open": [], "day_counts": {}, "forward": {}, "briefed": None, "bias": None, "bias_pending": None}
     return {**base, **{k: v for k, v in (st or {}).items() if k in base}}
+
+
+def yield_to_other(status, my_pid, now):
+    """Duplicate copies resolve themselves: if ANOTHER live instance with a lower pid is writing the status file, this one exits."""
+    other = status.get("pid")
+    return other not in (None, my_pid) and now - status.get("ts", 0) < STALE_AFTER and other < my_pid
 
 
 def run_forever(data_dir):
@@ -336,7 +350,15 @@ def run_forever(data_dir):
             svc.cycle()
             if svc.error and "MT5" in svc.error:
                 connected = False
-        time.sleep(20)
+        for _ in range(10):                      # 20s between scans, but a heartbeat every 2s
+            if stop["v"]:
+                break
+            time.sleep(2)
+            if yield_to_other(_read_json(os.path.join(data_dir, "signal-status.json"), {}), os.getpid(), time.time()):
+                stop["v"] = True                 # a duplicate was started: the lowest pid keeps running
+                print("Duplicate signal service detected; exiting.", file=sys.stderr)
+                return 0
+            svc.heartbeat()
     svc.write_status(svc.config())
     mt5.shutdown()
     return 0

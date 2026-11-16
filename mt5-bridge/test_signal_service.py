@@ -210,6 +210,33 @@ def test_morning_briefing_is_sent_once_per_day():
     assert len([e for e in entries(d) if e.get("kind") == "briefing"]) == 1
 
 
+def test_heartbeat_keeps_the_status_fresh_between_scans_without_rescanning():
+    svc, clock, log, d = make()
+    svc.cycle()
+    p = os.path.join(d, "signal-status.json")
+    t0 = json.load(open(p))["ts"]
+    entries_before = len(entries(d))
+    clock[0] += 2
+    svc.heartbeat()
+    clock[0] += 2
+    svc.heartbeat()
+    st = json.load(open(p))
+    assert st["ts"] == t0 + 4 and st["snapshot"] is not None and st["connected"]      # fresh timestamp, same content
+    assert len(entries(d)) == entries_before                                           # no re-scan, no new alerts
+    fresh = SV.Service(tempfile.mkdtemp(), FakeMT5(MON_1200), now=lambda: 0, news_loader=lambda p, now=None: {"ok": True, "events": []})
+    fresh.heartbeat()                                                                  # before the first scan: harmless no-op
+    assert fresh.last_status is None
+
+
+def test_duplicate_instances_resolve_to_the_lowest_pid():
+    live = {"pid": 100, "ts": 1000.0}
+    assert SV.yield_to_other(live, my_pid=200, now=1005.0) is True       # a lower-pid copy is alive: this one exits
+    assert SV.yield_to_other(live, my_pid=50, now=1005.0) is False       # I am the lowest: keep running
+    assert SV.yield_to_other(live, my_pid=100, now=1005.0) is False      # it is me
+    assert SV.yield_to_other(live, my_pid=200, now=1000.0 + SV.STALE_AFTER + 1) is False   # the other one is dead (stale heartbeat)
+    assert SV.yield_to_other({}, my_pid=200, now=1.0) is False
+
+
 def test_merge_ignores_junk_config_and_keeps_defaults():
     c = SV.merge(SV.DEFAULT_CFG, {"minScore": "high", "maxPerDay": 3, "setups": {"sweep_mss": "maybe", "range_scalp": "on"}, "channels": {"telegram": {"token": 5}}, "junk": 1})
     assert c["minScore"] == 70 and c["maxPerDay"] == 3 and c["setups"] == {"range_scalp": "on"} and c["channels"]["telegram"]["token"] == ""
