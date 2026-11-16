@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Bot, CalendarDays, Check, Radar, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
+import { Bot, CalendarDays, Check, LayoutDashboard, LineChart, Moon, NotebookPen, Radar, Radio, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
 import { useJournal } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import { useAnalysis } from "@/lib/useAnalysis";
@@ -8,6 +8,7 @@ import Dashboard from "./Dashboard";
 import CalendarView from "./CalendarView";
 import Journal from "./Journal";
 import Insights from "./Insights";
+import EdgeCheck from "./Signals"; // earlier "live edge-profile" check (scored against your own trades); the real-strategy alerts are SignalsPanel
 import SettingsPanel from "./SettingsPanel";
 import BotPanel from "./BotPanel";
 import SignalsPanel from "./SignalsPanel";
@@ -19,6 +20,7 @@ const TABS = [
   { id: "Journal", icon: NotebookPen },
   { id: "Insights", icon: Sparkles },
   { id: "Signals", icon: Radar },
+  { id: "Edge check", icon: Radio },
   { id: "Bot", icon: Bot },
   { id: "Settings", icon: Settings },
 ] as const;
@@ -98,6 +100,7 @@ export default function App() {
           {tab === "Journal" && <Journal j={j} an={an} />}
           {tab === "Insights" && <Insights j={j} an={an} go={setTab} theme={theme} />}
           {tab === "Signals" && <SignalsPanel />}
+          {tab === "Edge check" && <EdgeCheck j={j} an={an} go={setTab} />}
           {tab === "Bot" && <BotPanel j={j} />}
           {tab === "Settings" && <SettingsPanel j={j} />}
         </div>

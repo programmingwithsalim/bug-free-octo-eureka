@@ -33,6 +33,9 @@ Click a trade (Journal/Calendar) for a slide-over with the chart (best/worst poi
 - **Management what-ifs**: stop + 2R target, break-even, ATR trail, partial exit replayed on the real candles, always shown next to their effect across all your trades.
 The **Insights** page shows the same edge profile for all trades. Analyses run automatically (MT5 must be open the first time) and are stored.
 
+## Signals
+The **Signals** tab scores the live market (the symbols you trade most) against your own edge profile: for a hypothetical long and short *right now* it shows whether that kind of entry (momentum, range position, trend over the last hour) has worked, not worked, or has no clear record in your history, with the evidence label. It refreshes every 30 s while open, flags stale data when the market is closed, and needs MT5 open plus enough analysed trades. It only alerts; it never opens trades.
+
 ## Trade charts
 Click any trade (Journal or Calendar) to see its candlestick chart straight from MT5 history: entry/exit markers, entry/exit/SL/TP lines, switchable timeframe (M1-H1). The window and timeframe are chosen automatically from how long the trade lasted. Candles for finished windows are cached in `data/candles/`, so charts keep working later even with MT5 closed. Needs the terminal open the first time a chart is viewed. Broker time is assumed UTC (Exness).
 

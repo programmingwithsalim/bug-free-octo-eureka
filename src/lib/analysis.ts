@@ -62,8 +62,8 @@ export interface Analysis {
 
 const M5 = 300;
 
-interface Bar { t: number; o: number; h: number; l: number; c: number }
-const toBars = (rows: CandleRow[]): Bar[] => rows.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
+export interface Bar { t: number; o: number; h: number; l: number; c: number }
+export const toBars = (rows: CandleRow[]): Bar[] => rows.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
 
 /** Aggregate M1 bars into M5 bars. */
 export function toM5(bars: Bar[]): Bar[] {
@@ -119,6 +119,25 @@ export function walk(bars: Bar[], dir: 1 | -1, entry: number, horizonPrice: numb
   return { move: realized + remaining * (horizonPrice - entry) * dir, exitTime: null as number | null, reason: "held to your exit" };
 }
 
+/** What was knowable at `openS` (epoch s) for a position in `dir` at `entry`. Used for closed trades and for live signals. */
+export function entryFeatures(all: Bar[], openS: number, entry: number, dir: 1 | -1, a: number | null): Analysis["features"] {
+  const pre = all.filter((b) => b.t >= openS - 15 * 60 && b.t < openS);
+  const hour = all.filter((b) => b.t >= openS - 3600 && b.t < openS);
+  const run15 = pre.length >= 5 && a ? ((pre[pre.length - 1].c - pre[0].o) * dir) / a : null;
+  let posDir: number | null = null, trend60: number | null = null;
+  if (a && hour.length >= 30) {
+    const hi = Math.max(...hour.map((b) => b.h)), lo = Math.min(...hour.map((b) => b.l));
+    if (hi > lo) posDir = dir > 0 ? (entry - lo) / (hi - lo) : 1 - (entry - lo) / (hi - lo);
+    trend60 = ((hour[hour.length - 1].c - hour[0].o) * dir) / a;
+  }
+  return { run15Atr: run15, posDir, trend60Atr: trend60 };
+}
+
+/** ATR(14) on M5 from the bars before the M5 candle containing `openS`. */
+export function atrBefore(all: Bar[], openS: number): number | null {
+  return atr(toM5(all.filter((b) => b.t < openS)).filter((b) => b.t < Math.floor(openS / M5) * M5), 14);
+}
+
 export function analyzeTrade(trade: Trade, rows: CandleRow[]): Analysis {
   const dir: 1 | -1 = trade.side === "long" ? 1 : -1;
   const openS = Math.floor(+new Date(trade.openTime) / 1000), closeS = Math.floor(+new Date(trade.closeTime) / 1000);
@@ -161,16 +180,7 @@ export function analyzeTrade(trade: Trade, rows: CandleRow[]): Analysis {
     if (((dir > 0 ? b.h : b.l) - entry) * dir >= 0) returned = true;
   }
 
-  // entry features (information available at entry only)
-  const pre = all.filter((b) => b.t >= openS - 15 * 60 && b.t < openS);
-  const hour = all.filter((b) => b.t >= openS - 3600 && b.t < openS);
-  const run15 = pre.length >= 5 && a ? ((pre[pre.length - 1].c - pre[0].o) * dir) / a : null;
-  let posDir: number | null = null, trend60: number | null = null;
-  if (a && hour.length >= 30) {
-    const hi = Math.max(...hour.map((b) => b.h)), lo = Math.min(...hour.map((b) => b.l));
-    if (hi > lo) posDir = dir > 0 ? (entry - lo) / (hi - lo) : 1 - (entry - lo) / (hi - lo);
-    trend60 = ((hour[hour.length - 1].c - hour[0].o) * dir) / a;
-  }
+  const features = entryFeatures(all, openS, entry, dir, a);
 
   const out: Analysis = {
     ...base, ok: true, valuePerUnit: vpu, atr: a, mae, mfe,
@@ -178,7 +188,7 @@ export function analyzeTrade(trade: Trade, rows: CandleRow[]): Analysis {
     maeMoney: vpu == null ? null : round(-mae * vpu, 2), mfeMoney: vpu == null ? null : round(mfe * vpu, 2),
     exitEfficiency: mfe > 0 ? actualMove / mfe : null,
     after: { favorable: pFav, adverse: pAdv, returnedToEntry: returned },
-    features: { run15Atr: run15, posDir, trend60Atr: trend60 },
+    features,
   };
 
   // ---- suggestion: pre-trade information only ----
