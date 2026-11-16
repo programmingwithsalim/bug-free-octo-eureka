@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Bot, CalendarDays, Check, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
+import { Bot, CalendarDays, Check, Radar, LayoutDashboard, LineChart, Moon, NotebookPen, RefreshCw, Settings, Sparkles, Sun, TriangleAlert } from "lucide-react";
 import { useJournal } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import { useAnalysis } from "@/lib/useAnalysis";
@@ -10,6 +10,7 @@ import Journal from "./Journal";
 import Insights from "./Insights";
 import SettingsPanel from "./SettingsPanel";
 import BotPanel from "./BotPanel";
+import SignalsPanel from "./SignalsPanel";
 import Seg from "./Seg";
 
 const TABS = [
@@ -17,6 +18,7 @@ const TABS = [
   { id: "Calendar", icon: CalendarDays },
   { id: "Journal", icon: NotebookPen },
   { id: "Insights", icon: Sparkles },
+  { id: "Signals", icon: Radar },
   { id: "Bot", icon: Bot },
   { id: "Settings", icon: Settings },
 ] as const;
@@ -95,6 +97,7 @@ export default function App() {
           {tab === "Calendar" && <CalendarView j={j} an={an} go={setTab} />}
           {tab === "Journal" && <Journal j={j} an={an} />}
           {tab === "Insights" && <Insights j={j} an={an} go={setTab} theme={theme} />}
+          {tab === "Signals" && <SignalsPanel />}
           {tab === "Bot" && <BotPanel j={j} />}
           {tab === "Settings" && <SettingsPanel j={j} />}
         </div>

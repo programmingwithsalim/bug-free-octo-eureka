@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { execFile, spawn } from "child_process";
 import type { CandleRow } from "./chart";
+import { DEFAULT_ALERTS, sanitizeAlerts, type AlertsConfig, type Backtest, type InfoRec, type SignalRec, type SignalStatus } from "./alerts";
 import { DEFAULT_BOT_CONFIG, sanitizeBotConfig, type BotConfig, type BotLogEntry, type BotStatus } from "./bot";
 import { DEFAULT_ACCOUNT, type AccountSettings, type Trade } from "./types";
 import type { Mt5Export } from "./mt5";
@@ -212,6 +213,73 @@ export async function runAnalysis(trades: Trade[], force = false): Promise<{ ana
 export async function storedAnalyses(): Promise<Record<string, Analysis>> {
   return dbConfigured() ? ((await dbGetAnalyses(ANALYSIS_VERSION)) as Record<string, Analysis>) : {};
 }
+
+// ---------------------------------------------------------------------------------------------
+// Signal alert service (mt5-bridge/signal_service.py)
+// ---------------------------------------------------------------------------------------------
+export async function readAlertsConfig(): Promise<AlertsConfig> {
+  try { return sanitizeAlerts(JSON.parse(await fs.readFile(botFile("alerts-config.json"), "utf8")), "") ; } catch { return DEFAULT_ALERTS; }
+}
+export async function writeAlertsConfig(c: AlertsConfig) {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  const tmp = botFile("alerts-config.json.tmp");
+  await fs.writeFile(tmp, JSON.stringify(c, null, 2));
+  await fs.rename(tmp, botFile("alerts-config.json"));
+}
+/** The stored token is needed to keep it when the UI sends the "set" placeholder. */
+export async function storedTelegramToken(): Promise<string> {
+  try { return JSON.parse(await fs.readFile(botFile("alerts-config.json"), "utf8"))?.channels?.telegram?.token ?? ""; } catch { return ""; }
+}
+export async function readSignalStatus(): Promise<{ running: boolean; status: SignalStatus | null }> {
+  try {
+    const s: SignalStatus = JSON.parse(await fs.readFile(botFile("signal-status.json"), "utf8"));
+    return { running: Date.now() - s.ts * 1000 < HEARTBEAT_MS * 2, status: s };
+  } catch { return { running: false, status: null }; }
+}
+/** Folds data/signals.jsonl (alerts + their forward-test outcomes + info alerts) into feeds, newest first. */
+export async function readSignalFeed(): Promise<{ signals: SignalRec[]; infos: InfoRec[]; suppressed: number }> {
+  let text = "";
+  try { text = await fs.readFile(botFile("signals.jsonl"), "utf8"); } catch { return { signals: [], infos: [], suppressed: 0 }; }
+  const byId = new Map<string, SignalRec>();
+  const infos: InfoRec[] = [];
+  let suppressed = 0;
+  for (const line of text.split("\n").slice(-1500)) {
+    if (!line) continue;
+    let e: any;
+    try { e = JSON.parse(line); } catch { continue; }
+    if (e.type === "signal") byId.set(e.id, { ...e, status: "open" });
+    else if (e.type === "update") { const s = byId.get(e.id); if (s) { s.status = e.status; s.r = e.r; s.at = e.at; } }
+    else if (e.type === "info") infos.push({ t: e.t, kind: e.kind, title: e.title, body: e.body });
+    else if (e.type === "suppressed") suppressed++;
+  }
+  return { signals: [...byId.values()].sort((a, b) => b.close_time - a.close_time).slice(0, 60), infos: infos.reverse().slice(0, 30), suppressed };
+}
+export async function readBacktest(): Promise<Backtest | null> {
+  try { return JSON.parse(await fs.readFile(botFile("backtest.json"), "utf8")); } catch { return null; }
+}
+export async function startSignalService(): Promise<void> {
+  if ((await readSignalStatus()).running) return;
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  const script = path.join(process.cwd(), "mt5-bridge", "signal_service.py");
+  spawn(process.env.PYTHON ?? "python", [script, "--data-dir", DATA_DIR], { detached: true, stdio: "ignore", windowsHide: true, cwd: path.dirname(script) }).unref();
+}
+export async function stopSignalService(): Promise<void> {
+  const { running, status } = await readSignalStatus();
+  if (running && status && Number.isInteger(status.pid) && status.pid > 0) { try { process.kill(status.pid); } catch {} }
+  await fs.rm(botFile("signal-status.json"), { force: true });
+}
+const runPy = (script: string, args: string[], timeout: number): Promise<any> => new Promise((resolve, reject) => {
+  const file = path.join(process.cwd(), "mt5-bridge", script);
+  execFile(process.env.PYTHON ?? "python", [file, ...args], { timeout, maxBuffer: 16 * 1024 * 1024, cwd: path.dirname(file) }, (err, stdout) => {
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    for (let i = lines.length - 1; i >= 0; i--) { try { return resolve(JSON.parse(lines[i])); } catch {} }
+    reject(new Error(err ? `Could not run Python (${err.message})` : "Empty response"));
+  });
+});
+/** Sends a test alert on every enabled channel using the saved config. */
+export const runAlertTest = () => runPy("notify.py", ["--test", "--config", botFile("alerts-config.json")], 60_000);
+/** Re-runs the 13-month backtest (about a minute) and writes data/backtest.json. */
+export const runBacktestJob = () => runPy("run_backtest.py", ["--data-dir", DATA_DIR], 5 * 60_000);
 
 export async function stopBot(): Promise<void> {
   const { running, status } = await readBotStatus();
