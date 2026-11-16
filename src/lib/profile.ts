@@ -8,23 +8,23 @@ import type { Trade } from "./types";
 import type { Analysis } from "./analysis";
 
 export type FeatureId = "run15" | "posDir" | "trend60";
-interface Def { id: FeatureId; title: string; edges: number[]; labels: string[]; get: (a: Analysis) => number | null }
+interface Def { id: FeatureId; title: string; edges: number[]; labels: string[]; get: (f: Analysis["features"]) => number | null }
 
 export const FEATURES: Def[] = [
   {
     id: "run15", title: "Momentum into your entry (last 15 min)", edges: [-1, 0, 0.75, 1.5],
     labels: ["Against a strong move", "Against a small move", "Quiet market", "With a moderate move", "With strong momentum"],
-    get: (a) => a.features.run15Atr,
+    get: (f) => f.run15Atr,
   },
   {
     id: "posDir", title: "Where in the last hour's range you entered", edges: [0.2, 0.4, 0.6, 0.8],
     labels: ["Far end (fading)", "Lower-middle", "Middle of the range", "Upper-middle", "At the extreme"],
-    get: (a) => a.features.posDir,
+    get: (f) => f.posDir,
   },
   {
     id: "trend60", title: "Last hour's trend vs your direction", edges: [-3, -1, 0, 1, 3],
     labels: ["Strongly against the trend", "Against the trend", "Slightly against", "Slightly with", "With the trend", "Strongly with the trend"],
-    get: (a) => a.features.trend60Atr,
+    get: (f) => f.trend60Atr,
   },
 ];
 
@@ -57,7 +57,7 @@ export function buildProfile(items: { trade: Trade; a: Analysis }[]): Profile {
   for (const f of FEATURES) {
     const groups: Trade[][] = f.labels.map(() => []);
     for (const { trade, a } of usable) {
-      const v = f.get(a);
+      const v = f.get(a.features);
       if (v == null) continue;
       const k = bucketIndex(v, f.edges);
       groups[k].push(trade);
@@ -80,12 +80,11 @@ export function buildProfile(items: { trade: Trade; a: Analysis }[]): Profile {
   return out;
 }
 
-/** The bucket each feature places this trade in. */
-export function placeTrade(a: Analysis, profile: Profile): BucketStat[] {
-  if (!a.ok) return [];
+/** The bucket each feature places an entry in. */
+export function placeFeatures(features: Analysis["features"], profile: Profile): BucketStat[] {
   const res: BucketStat[] = [];
   for (const f of FEATURES) {
-    const v = f.get(a);
+    const v = f.get(features);
     if (v == null) continue;
     const k = bucketIndex(v, f.edges);
     const hit = profile[f.id]?.find((b) => b.index === k);
@@ -93,6 +92,8 @@ export function placeTrade(a: Analysis, profile: Profile): BucketStat[] {
   }
   return res;
 }
+
+export const placeTrade = (a: Analysis, profile: Profile): BucketStat[] => (a.ok ? placeFeatures(a.features, profile) : []);
 
 export interface Verdict { tone: "good" | "warn" | "neutral" | "mixed"; headline: string; detail: string }
 
