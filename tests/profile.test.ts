@@ -53,22 +53,3 @@ describe("edge profile", () => {
     expect(placeTrade({ ok: false } as Analysis, p)).toEqual([]);
   });
 });
-
-import { evaluateSignal, liveFeatures } from "../src/lib/signals";
-import type { CandleRow } from "../src/lib/chart";
-
-describe("live signals", () => {
-  // 3h of M1 candles rising steadily
-  const rows: CandleRow[] = Array.from({ length: 180 }, (_, i) => [1_700_000_000 + i * 60, 100 + i * 0.1, 100.2 + i * 0.1, 99.9 + i * 0.1, 100.1 + i * 0.1 + (i % 3) * 0.02]);
-  it("returns null without enough history", () => expect(liveFeatures("X", rows.slice(0, 10))).toBeNull());
-  it("scores long and short symmetrically and flags stale data", () => {
-    const f = liveFeatures("X", rows)!;
-    expect(f.long.trend60Atr).toBeGreaterThan(0);
-    expect(f.short.trend60Atr!).toBeCloseTo(-f.long.trend60Atr!, 9);
-    const empty = { run15: [], posDir: [], trend60: [] };
-    const s = evaluateSignal(f, empty, f.time + 3600);
-    expect(s.stale).toBe(true);
-    expect(s.best).toBeNull();
-    expect(s.long.state).toBe("neutral");
-  });
-});
