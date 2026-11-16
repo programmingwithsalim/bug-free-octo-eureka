@@ -9,6 +9,20 @@ Runs entirely on this PC and pulls your closed trades straight from MetaTrader 5
 - **MT5 sync** – the *Sync MT5* button (and an automatic sync on open and every 5 min) reads closed deals from your running terminal. Re-syncing never overwrites your notes, tags or ratings.
 - **CSV import** – still available for other brokers / old history.
 
+## Signals and alerts (the **Signals** tab)
+A background service watches gold on MT5 and **alerts you with the page closed**: Windows desktop notification, sound, and optional Telegram (phone). Start it once from the tab (**Start alerts**); it keeps running until you stop it. MT5 must stay open and logged in, and the PC on.
+
+Method (top-down): **H4 + H1 decide bias and regime first; entries are M15 only.**
+- *Trending* (H4/H1 agree): only setups with the bias, targeted at the nearest key level (previous day/week high/low, Asia range, H1 swing). H4/H1 in conflict: stand aside.
+- *Ranging/consolidating*: scalps only, from the range edge back toward the middle; no breakout trades.
+- Setups: liquidity sweeps (+ structure shift), double top/bottom, head & shoulders (and inverse), trendline bounce/break, range-edge scalp, news sweep-and-reclaim; candlestick confirmation (engulfing, pin bar, stars). Signals only fire on **closed** candles (no repainting) and always list their reasons.
+- Daily plans at 07:00 / 12:00 UTC head for the nearer of the previous day's high/low. Also: morning read, bias-change alerts, and warnings before high-impact USD news.
+
+**Be honest about the evidence.** Every setup is backtested on ~13 months of your M15 gold history (entry at the next candle's open, spread paid, stop wins ties, last 30% held out). A setup only alerts automatically if it passes a quality gate; the rest are "UNPROVEN" and you can switch them on yourself. In the current results only the 12:00 UTC daily plan passes (narrowly, and several variants were tried); the pattern/sweep/trendline setups averaged about 0R after costs. Every alert is also followed to its outcome so you build a real forward-test record. Decision aid, not advice.
+- Run/refresh the lab from the tab (**Re-run backtest**, ~1 min) or `python mt5-bridge/run_backtest.py --data-dir data`.
+- Telegram: create a bot with @BotFather, send it "hi", get your chat id from @userinfobot, paste both in the tab, Save, **Send test alert**. The token is stored only in `data/alerts-config.json` (git-ignored) and never sent back to the browser.
+- News calendar: public weekly feed, cached hourly; if unreachable the service says so and runs without news awareness.
+
 ## Storage (Postgres)
 Run once: `npm run db:setup -- --password <your postgres password>` (creates the `trade_journal` database and tables, writes the connection string to the git-ignored `.env.local`), then restart `npm run dev`. The first start imports an existing `data/journal.json` (left in place as a backup). Without `.env.local` the app keeps using `data/*.json`.
 Stored in Postgres: trades + journal notes, account, cached MT5 candles, and per-trade analyses. The Bot's files (`bot-*.json`) stay in `data/`. The password is never committed.

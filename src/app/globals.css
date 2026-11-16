@@ -153,6 +153,40 @@ details.fold[open] > summary { margin-bottom: 12px; }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: var(--panel); box-shadow: 0 8px 30px #0004; font-weight: 500; animation: toast-in .4s var(--ease) both; max-width: min(420px, calc(100vw - 32px)); }
 .toast.ok .ico { background: var(--green-bg); color: var(--green); } .toast.bad .ico { background: var(--red-bg); color: var(--red); }
 
+/* ---- signals ---- */
+.feeds { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 1150px) { .feeds { grid-template-columns: 1fr; } }
+.bias-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.bias { padding: 5px 14px; border-radius: 999px; font-weight: 700; letter-spacing: .5px; background: var(--panel2); }
+.bias.bullish { background: var(--green-bg); color: var(--green); } .bias.bearish { background: var(--red-bg); color: var(--red); }
+.action { font-size: 15px; font-weight: 600; margin: 6px 0; }
+.draw { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; margin: 6px 0 12px; }
+.draw svg { align-self: center; color: var(--accent); }
+.lv { display: grid; gap: 2px; }
+.lv > div { display: grid; grid-template-columns: 1fr auto 70px; gap: 10px; padding: 6px 10px; border-radius: 9px; font-variant-numeric: tabular-nums; }
+.lv > div:nth-child(odd) { background: var(--panel2); } .lv > div span:last-child { text-align: right; }
+.lv > div.below { opacity: .75; }
+.news { display: grid; gap: 8px; }
+.news > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 12px; border-radius: 12px; background: var(--panel2); }
+.news > div span:nth-child(3) { grid-column: 1 / -1; font-size: 12px; }
+.sigcard { border-left: 4px solid var(--muted); display: grid; gap: 10px; animation: rise .45s var(--ease) both; }
+.sigcard.buy { border-left-color: var(--green); } .sigcard.sell { border-left-color: var(--red); }
+.sig-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sig-head .badge { margin-left: 0; } .sig-when { margin-left: auto; font-size: 12px; }
+.outcome { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--panel2); color: var(--muted); }
+.outcome.tp { background: var(--green-bg); color: var(--green); } .outcome.sl { background: var(--red-bg); color: var(--red); }
+.levels { display: flex; gap: 18px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.reasons { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 2px; }
+.evid-line { font-size: 12px; padding: 7px 12px; border-radius: 10px; background: var(--panel2); color: var(--muted); }
+.evid-line.ok { background: var(--green-bg); color: var(--green); }
+.checklist { font-size: 12px; color: var(--muted); }
+.parts { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; margin-bottom: 10px; }
+.log-row.info { grid-template-columns: 56px 64px 1fr; }
+.check { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text); font-size: 14px; cursor: pointer; }
+.check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.sel.mini { min-width: 0; font-size: 12px; padding: 5px 8px; }
+input.hour { width: 64px; display: inline-block; padding: 4px 8px; }
+
 /* ---- insights ---- */
 .hero3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .hero-card .l { display: flex; align-items: center; gap: 8px; font-size: 12px; }

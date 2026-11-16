@@ -87,6 +87,32 @@ import { applyMt5Account, inferStartingBalance, mergeMt5 } from "../src/lib/mt5"
 import { monthGrid, summarize } from "../src/lib/calendar";
 import { DEFAULT_BOT_CONFIG, sanitizeBotConfig } from "../src/lib/bot";
 import { chartWindow, chooseTf, snapToCandle, validateCandleRequest } from "../src/lib/chart";
+import { DEFAULT_ALERTS, maskAlerts, sanitizeAlerts } from "../src/lib/alerts";
+
+describe("alert settings", () => {
+  it("defaults are safe and junk falls back", () => {
+    expect(DEFAULT_ALERTS.channels.telegram.enabled).toBe(false);
+    expect(DEFAULT_ALERTS.setups).toEqual({});                       // unproven setups stay "auto" (silent unless they passed the gate)
+    expect(sanitizeAlerts(null)).toEqual(DEFAULT_ALERTS);
+    const c = sanitizeAlerts({ minScore: 5, maxPerDay: 999, symbol: "bad symbol!", setups: { sweep_mss: "maybe", range_scalp: "on", nonsense: "on" }, news: { minutes: [0, 30, 30, "10", 99999] }, quiet: { start: 30, end: -3 } });
+    expect(c.minScore).toBe(40);
+    expect(c.maxPerDay).toBe(30);
+    expect(c.symbol).toBe("XAUUSDm");
+    expect(c.setups).toEqual({ range_scalp: "on" });
+    expect(c.news.minutes).toEqual([30, 10, 240]);
+    expect(c.quiet).toMatchObject({ start: 23, end: 0 });
+  });
+  it("validates the Telegram token/chat id and keeps the stored token behind the mask", () => {
+    const good = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ_01234567";
+    const c = sanitizeAlerts({ channels: { telegram: { enabled: true, token: good, chatId: " -1001234567 " } } });
+    expect(c.channels.telegram).toEqual({ enabled: true, token: good, chatId: "-1001234567" });
+    expect(sanitizeAlerts({ channels: { telegram: { token: "not a token", chatId: "abc" } } }).channels.telegram).toMatchObject({ token: "", chatId: "" });
+    expect(sanitizeAlerts({ channels: { telegram: { enabled: true, token: "set", chatId: "12345" } } }, good).channels.telegram.token).toBe(good);
+    expect(maskAlerts(c).channels.telegram.token).toBe("set");
+    expect(maskAlerts(sanitizeAlerts({})).channels.telegram.token).toBe("");
+    expect(JSON.stringify(maskAlerts(c))).not.toContain(good);
+  });
+});
 
 describe("trade chart helpers", () => {
   const T = (s: string) => +new Date(s);

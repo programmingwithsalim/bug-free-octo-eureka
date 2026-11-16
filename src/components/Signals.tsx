@@ -38,7 +38,7 @@ export default function Signals({ j, an, go }: { j: JournalApi; an: AnalysisApi;
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await (await fetch("/api/signals", { cache: "no-store" })).json();
+      const d = await (await fetch("/api/signals/edge", { cache: "no-store" })).json();
       setLive(d.live ?? []); setErrors(d.error ? [d.error] : d.errors ?? []); setAt(new Date());
     } catch (e) {
       setErrors([(e as Error).message]);
